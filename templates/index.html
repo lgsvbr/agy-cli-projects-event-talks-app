@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BigQuery Release Notes</title>
+  <meta name="description" content="Browse the latest BigQuery release notes from Google Cloud and share updates directly to Twitter/X." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="bq-logo">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="48" height="48" rx="10" fill="url(#grad1)"/>
+            <path d="M24 10L36 17V31L24 38L12 31V17L24 10Z" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="1.5"/>
+            <path d="M18 24h12M24 18v12" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="grad1" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#4285F4"/>
+                <stop offset="1" stop-color="#1565C0"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">BigQuery</h1>
+          <span class="brand-subtitle">Release Notes</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <span id="last-fetched" class="last-fetched" aria-live="polite"></span>
+        <button id="refresh-btn" class="btn-refresh" aria-label="Refresh release notes" title="Refresh">
+          <svg class="refresh-icon" id="refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          <span class="btn-refresh-label">Refresh</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Filter bar ─────────────────────────────────────── -->
+  <div class="filter-bar" id="filter-bar" role="search" aria-label="Filter release notes">
+    <div class="filter-bar-inner">
+      <div class="search-wrapper">
+        <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input
+          type="search"
+          id="search-input"
+          class="search-input"
+          placeholder="Search release notes…"
+          aria-label="Search release notes"
+          autocomplete="off"
+        />
+      </div>
+      <div class="type-filters" id="type-filters" role="group" aria-label="Filter by type"></div>
+    </div>
+  </div>
+
+  <!-- ── Main content ───────────────────────────────────── -->
+  <main class="main-content" id="main-content">
+    <!-- Loading state -->
+    <div id="loading-state" class="loading-state" role="status" aria-live="polite">
+      <div class="spinner-ring"></div>
+      <p>Fetching release notes…</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="error-state" class="error-state hidden" role="alert">
+      <div class="error-icon">⚠</div>
+      <h2>Failed to load release notes</h2>
+      <p id="error-message" class="error-message"></p>
+      <button class="btn-retry" id="retry-btn" onclick="loadFeed()">Try Again</button>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="empty-state hidden" role="status">
+      <div class="empty-icon">🔍</div>
+      <h2>No results found</h2>
+      <p>Try adjusting your search or filters.</p>
+    </div>
+
+    <!-- Feed entries -->
+    <div id="entries-container" class="entries-container hidden" aria-live="polite"></div>
+  </main>
+
+  <!-- ── Tweet Modal ─────────────────────────────────────── -->
+  <div id="tweet-modal-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal" id="tweet-modal">
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <svg class="x-logo" viewBox="0 0 1200 1227" fill="currentColor" aria-hidden="true">
+            <path d="M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37H1200L714.163 519.284ZM569.165 687.828L521.697 619.934L144.011 79.6944H306.615L611.412 515.685L658.88 583.579L1055.08 1150.3H892.476L569.165 687.828Z"/>
+          </svg>
+          <h2 id="modal-title" class="modal-heading">Share to X / Twitter</h2>
+        </div>
+        <button class="modal-close" id="modal-close-btn" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-entry-date" id="modal-entry-date"></p>
+
+        <label for="tweet-textarea" class="tweet-label">Edit your tweet</label>
+        <div class="textarea-wrapper">
+          <textarea
+            id="tweet-textarea"
+            class="tweet-textarea"
+            maxlength="280"
+            rows="6"
+            aria-describedby="char-count"
+          ></textarea>
+          <div class="char-count" id="char-count">
+            <span id="chars-used">0</span> / 280
+          </div>
+        </div>
+
+        <p class="tweet-hint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+          The link to the full release note will be appended automatically.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" id="modal-cancel-btn">Cancel</button>
+        <button class="btn-tweet" id="tweet-btn" aria-label="Post to X / Twitter">
+          <svg class="x-logo-sm" viewBox="0 0 1200 1227" fill="currentColor" aria-hidden="true">
+            <path d="M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37H1200L714.163 519.284ZM569.165 687.828L521.697 619.934L144.011 79.6944H306.615L611.412 515.685L658.88 583.579L1055.08 1150.3H892.476L569.165 687.828Z"/>
+          </svg>
+          Post to X
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast ───────────────────────────────────────────── -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
